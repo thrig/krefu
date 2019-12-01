@@ -1,0 +1,11 @@
+krefu is a small flashcard program
+
+  # or as suitable to systems besides OpenBSD 6.6
+  doas pkg_add tcl-8.6.8p2 sqlite3-tcl-3.24.0
+
+  # optional, for audio or images in cards
+  doas pkg_add feh sox
+
+  cp krefu /some/where/in/PATH
+  cp krefu.1 /some/where/in/MANPATH/man1
+  man krefu

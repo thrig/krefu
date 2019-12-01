@@ -1,0 +1,222 @@
+.Dd December  1 2019
+.Dt KREFU 1
+.nh
+.Os
+.Sh NAME
+.Nm krefu
+.Nd a small flashcard program
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Cm init
+.Ek
+.Bk -words
+.Nm
+.Cm add
+.Ar deck
+.Ar type
+.Ar front
+.Op Ar back Op Ar fmedia Op Ar bmedia
+.Ek
+.Bk -words
+.Nm
+.Cm decks
+.Ek
+.Bk -words
+.Nm
+.Cm train
+.Ar deck
+.Ek
+.Sh DESCRIPTION
+.Nm
+is a small flashcard program that runs in a unix terminal. It uses
+.Dq Pimsleur's graduated-interval recall
+to perform spaced repetition on the cards. Cards may be single-sided
+.Ar type
+.Dv 0
+or two-sided
+.Ar type
+.Dv 1 .
+Two-sided cards probably should have
+.Ar back
+material; one-sided cards may or may not. Optional media may be included
+with cards that can be handled by external programs.
+.Pp
+Cards will be marked as inactive if they are missed too many times, or
+if the card has been seen too many times. This suits my method of adding
+large numbers of phrases that I do not care too much about; students who
+do need to learn particular facts may need to adjust the code or use
+something else.
+.Ss Setup
+A database will need to be setup, and then cards added. Both TCL and
+tclsqlite must be installed. See
+.Sx EXAMPLES
+for details.
+.Ss Training
+Questions are asked; following a
+.Cm space
+or 
+.Cm newline
+the answer (if any) will be shown and
+.Cm y
+or
+.Cm n
+should then be pressed to indicate whether the card was known.
+.Pp
+The
+.Cm I
+command anywhere ignores the current card; it will remain inactive
+until manually activated.
+.Pp
+The
+.Cm Q
+command anywhere will quit the training session; progress will not be
+saved on the current card.
+.Pp
+Training should likely be done several times per day, and the program
+should not be left running for long periods of time as this may throw
+off the new and review period calculations. Details on how many new
+cards and how many cards to review are presently hard-coded into the
+database and may change without notice.
+.Ss Database Schema
+Briefly, the
+.Sq cardinfo
+table holds front and back material for each card. The
+.Sq cards
+table uses
+.Sq cardid
+and
+.Sq type
+to specify unique cards, where
+.Sq type
+may be 1 for a two-sided front-back card, 0 for a one-sided card, and -1 for a two-sided back-front card that (hopefully) shares
+.Sq cardid
+with a front-back card.
+.Pp
+.Sq active ,
+.Sq mtime ,
+.Sq score ,
+and
+.Sq seen
+in the
+.Sq cards
+table hold details on when the card will next be shown, as used
+by logic in
+.Nm .
+The spaced repetition interval is handled by code within
+.Nm
+based on the
+.Sq score
+value (sooner for lower values, less often for higher values).
+.Pp
+The
+.Sq decks
+table defines particular groups of cards and contains various metadata on
+how many
+.Sq new
+and
+.Sq review
+cards are shown and have been trained
+.Sq ndone ,
+.Sq rdone
+within the time periods allowed
+.Sq nperiod ,
+.Sq rperiod .
+.Pp
+The
+.Sq carddecks
+table ties together the
+.Sq decks
+and
+.Sq card
+tables.
+.Pp
+It is hoped that the schema will not change significantly from the
+present form.
+.Ss Encoding
+.Nm
+uses the platform- and locale-dependent system encoding. Care must be
+taken that that encoding does not change when adding new cards so that a
+consistent encoding is maintained.
+.Pp
+.Dl $ Ic echo \&'puts [encoding system]\&' \&| tclsh8.6
+.Dl utf-8
+.Sh ENVIRONMENT
+.Dv KREFU_DIR
+specifies the path to the database directory,
+.Pa ~/share/krefu
+by default. Sqlite will need write access to this directory.
+.Nm
+.Cm init
+will attempt to create the directory path if it does not exist.
+.Sh FILES
+.Pa krefu.tcl
+under
+.Dv KREFU_DIR
+is sourced before the
+.Cm krefu
+procedure is called and thus can be used to override code in
+.Nm .
+This file is optional.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Install TCL and sqlite (for OpenBSD 6.6):
+.Pp
+.Dl $ Ic doas pkg_add tcl-8.6.8p2 sqlite3-tcl-3.24.0
+.Pp
+Setup the database with a custom path and add a few cards:
+.Pp
+.Dl $ Ic export KREFU_DIR=~/.config/krefu
+.Dl $ Ic krefu init
+.Dl $ Ic krefu add jbo 0 \&"coi do\&"
+.Dl $ Ic krefu add jbo 1 \&"lo since cu ckape\&" \&"snakes are dangerous\&"
+.Pp
+.Dv 1
+is a two-sided card; a back-front card will be added for training some
+time after the front-back card is first shown.
+.Dv 0
+is a one-sided card; only the front material (and back, if any)
+will be shown.
+.Pp
+Practice a deck:
+.Pp
+.Dl $ Ic krefu train jbo
+.Dl ...
+.Pp
+See
+.Sx Training
+for details on the key commands during training.
+.Ss External Media
+.Nm
+will execute external programs via the
+.Dv mediacmd
+variable should media fields be set for a card. The syntax is
+.Ar audio:/path/to/file
+or
+.Ar image:/path/to/file
+though more types (and the commands to run them with) could be added.
+.Pp
+.Dl $ Ic krefu add es 1 hola hello \&'audio:~/share/hola.mp3\&'
+.Pp
+.Nm
+will 
+.Cm file normalize
+the path to the media before executing the media command. If the file
+system layout changes the paths in the database will need to be updated.
+.Pp
+Multiple media entries can be set for a card if separated by spaces.
+This does not support file paths that contain spaces in them. The
+commands are run in the background so some form of locking may be
+necessary to avoid simultaneous audio or such.
+.Pp
+.Dl $ Ic krefu add jbo 1 mlatu cat \e
+.Dl \& \& \& Ic \&'audio:~/share/mlatu.mp3 image:~/share/mlatu.png\&'
+.Sh SEE ALSO
+.Xr encoding n ,
+.Xr file n
+.Pp
+.Nm Anki
+.Nd what I used to use
+.Sh AUTHOR
+.An Jeremy Mates
