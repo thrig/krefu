@@ -1,0 +1,8 @@
+#!/usr/bin/env perl
+#
+# not used; present to confirm that "foo bar" is being executed as
+# "foo","bar" and not being searched for "foo bar" under PATH
+my $meh = shift;
+
+my $file = shift;
+open my $fh, '>', $file or die "write $file failed: $!\n";

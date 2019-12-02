@@ -1,6 +1,6 @@
 #!/usr/bin/env tclsh8.6
 #
-# krefu is a small flashcard program. krefu requires a terminal (that
+# krefu - a small flashcard program. krefu requires a terminal (that
 # supports various ANSI or XTerm control sequences) and stty(1)
 
 package require Tcl 8.6
@@ -17,7 +17,11 @@ set mediacmd [dict create audio play image feh]
 
 # restore terminal state (necessary under the "train" command)
 proc bail_out {{status 0} {msg {}}} {
-    exec stty -raw echo <@stdin
+    catch {
+        if {[dict exists [fconfigure stdin] -mode]} {
+            exec -ignorestderr -- stty -raw echo <@stdin
+        }
+    }
     # disable alternate screen
     puts -nonewline \033\[?1049l
     if {[string length $msg]} {puts stderr $msg}
@@ -51,7 +55,8 @@ proc create_reverse {} {
 
 proc handle_media {media} {
     global card mediacmd
-    # NOTE this means that spaces in filenames are not permitted
+    # NOTE this means that spaces in filenames are not permitted (the
+    # test code also rejects spaces in KERFU_DIR)
     foreach spec [split $media \ ] {
         if {[regexp {^([^:]+):(.+)} $spec -> type path]} {
             if {[dict exists $mediacmd $type]} {
@@ -75,7 +80,7 @@ proc known {isnew} {
             I {
                 db eval {
                     UPDATE cards SET active = FALSE
-                    WHERE cardid = $card(cardid) AND type = $card(type)
+                    WHERE cardid = $card(cardid)
                 }
                 return
             }
@@ -118,7 +123,11 @@ proc main {} {
                 exit 64
             }
             sqlite3 db $dbfile -create 0 -nomutex 1
-            exec stty raw -echo <@stdin
+            catch {
+                if {[dict exists [fconfigure stdin] -mode]} {
+                    exec -ignorestderr -- stty raw -echo <@stdin
+                }
+            }
             fconfigure stdout -buffering none
             # setup alternate screen, cursor top left, clear screen
             puts -nonewline \033\[?1049h\033\[1\;1H\033\[2J
@@ -347,7 +356,7 @@ proc wait_before_answer {} {
             I {
                 db eval {
                     UPDATE cards SET active = FALSE
-                    WHERE cardid = $card(cardid) AND type = $card(type)
+                    WHERE cardid = $card(cardid)
                 }
                 return 0
             }
