@@ -279,17 +279,19 @@ proc traincard {limitv cardsv isnew} {
             SELECT * FROM cards INNER JOIN cardinfo USING (cardid)
             WHERE cardid = $cid AND type = $type
         } card {
-            # 1 = 2-sided card f/b; 0 = 1-sided; -1 = 2-sided b/f
-            if {$type == -1} {
-                show_question $card(back) $card(bmedia)
-            } else {
-                show_question $card(front) $card(fmedia)
-                if {$card(mtime) == 0 && $card(type) == 1} {create_reverse}
-            }
-            if {[wait_before_answer]} {
-                if {$type == -1} {show_answer $card(front) $card(fmedia)} \
-                else {show_answer $card(back) $card(bmedia)}
-                known $isnew
+            if {$card(active)} {
+                # 1 = 2-sided card f/b; 0 = 1-sided; -1 = 2-sided b/f
+                if {$type == -1} {
+                    show_question $card(back) $card(bmedia)
+                } else {
+                    show_question $card(front) $card(fmedia)
+                    if {$card(mtime) == 0 && $card(type) == 1} {create_reverse}
+                }
+                if {[wait_before_answer]} {
+                    if {$type == -1} {show_answer $card(front) $card(fmedia)} \
+                    else {show_answer $card(back) $card(bmedia)}
+                    known $isnew
+                }
             }
         }
     }
