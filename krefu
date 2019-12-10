@@ -134,6 +134,11 @@ proc main {} {
             traindeck $dname
         }
         add {
+            if {[llength $argv] < 4} {
+                puts stderr \
+                  {Usage: krefu add deck type front [back [fmedia [bmedia]]]}
+                exit 64
+            }
             sqlite3 db $dbfile -create 0 -nomutex 1
             set dname [lindex $argv 1]
             set type [lindex $argv 2]
