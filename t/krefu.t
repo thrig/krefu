@@ -2,6 +2,7 @@
 
 use 5.26.0;
 use warnings;
+use File::Path qw(make_path);
 use File::Spec::Functions qw(catfile);
 use File::Temp qw(tempdir);
 use Test::Most;
@@ -13,6 +14,7 @@ my $test_dir = tempdir('krefu.XXXXXXXXXX', CLEANUP => 1, TMPDIR => 1);
 
 ok $test_dir !~ m/\s/ or BAIL_OUT("whitespace found in test path '$test_dir'");
 
+make_path $test_dir;
 $ENV{KREFU_DIR} = $test_dir;
 
 my $dbfile = catfile($test_dir, 'krefu.db');
@@ -43,7 +45,7 @@ my $back  = 'test' . $$;
 {
     $cmd->run(args => 'decks');
     $cmd->run(args => "add $deck 1 $front $back");
-    $cmd->run(args => 'decks', stdout => [$deck]);
+    $cmd->run(args => 'decks', stdout => [$deck . ' 1']);
 }
 
 {
@@ -61,7 +63,7 @@ my $back  = 'test' . $$;
     # one reason might be is the changes aren't sync'ing quick enough
     # (or at all) to the disk, maybe add sleep statements to better
     # ensure that?
-    $cmd->run(args => 'decks', stdout => [$deck])
+    $cmd->run(args => 'decks', stdout => [$deck . ' 1'])
       or BAIL_OUT("krefu.tcl still broken??");
 }
 

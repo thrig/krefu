@@ -5,12 +5,26 @@
 
 package require Tcl 8.6
 package require sqlite3 3.24.0
+# https://github.com/thrig/tcl-pledge (pledge, unveil calls)
+package require pledge
+
+pledge "cpath exec flock proc rpath stdio tty wpath unveil" NULL
 
 namespace path {::tcl::mathop ::tcl::mathfunc}
 
 set kdir [lindex [array get env KREFU_DIR] end]
 if {$kdir eq ""} {set kdir ~/share/krefu}
-set dbfile [file join [file normalize $kdir] krefu.db]
+set kdir [file normalize $kdir]
+set dbfile [file join $kdir krefu.db]
+
+# TWEAK need rx for $mediacmd exec (feh, play, or . for the unit tests),
+# and also the /dev permissions so exec can do things with /dev/null
+unveil /usr/local/bin rx
+unveil /bin rx
+unveil . rx
+unveil $kdir crwx
+unveil /dev crwx
+unveil
 
 # assumes `sox` and `feh` are installed (or point to something suitable)
 set mediacmd [dict create audio play image feh]
@@ -85,13 +99,31 @@ proc known {isnew} {
                 return
             }
             y {incr card(score); break}
-            n {incr card(score) -1; break}
+            n {
+                incr card(score) -1
+                # TWEAK if miss back/front perhaps show the usually
+                # easier front/back sooner to help out with the miss
+                # (this may end up annoying me if the same cardset is
+                # shown too much?)
+                if {$card(type) == -1 && rand() < 0.5} {
+                    set frontscore [db onecolumn {
+                        SELECT score FROM cards
+                        WHERE cardid = $card(cardid) AND type = 1
+                    }]
+                    incr frontscore -1
+                    db eval {
+                        UPDATE cards SET score=$frontscore
+                        WHERE cardid = $card(cardid) AND type = 1
+                    }
+                }
+                break
+            }
         }
     }
     set active 1
     set epoch [spaced_rep $card(score)]
     incr card(seen)
-    # do not show card too much to avoid fatigue
+    # TWEAK do not show card too much to avoid fatigue
     if {$card(seen) > 20} {set active 0}
     # leech? disable the card as not getting anywhere with it
     if {$card(seen) > 10 && $card(score) < 1} {set active 0}
@@ -175,7 +207,8 @@ proc main {} {
             }
         }
         init {
-            file mkdir $kdir
+            # complicates the pledge/unveil, make the directory elsewhere
+            #file mkdir $kdir
             if {[file exists $dbfile]} {exit}
             sqlite3 db $dbfile -create 1 -nomutex 1
             db transaction {
@@ -260,7 +293,7 @@ proc rand_newreview {new review} {
     expr {int(($new + $review)*rand()) < $new}
 }
 
-# intervals based on "Pimsleur's graduated-interval recall" on the
+# TWEAK intervals based on "Pimsleur's graduated-interval recall" on the
 # Wikipedia "Spaced repetition" page (as of late November 2019)
 proc spaced_rep {score} {
     switch [clamp $score 0 9] {
@@ -382,7 +415,7 @@ proc wait_before_answer {} {
     }
 }
 
-set localize [file join [file normalize $kdir] krefu.tcl]
+set localize [file join $kdir krefu.tcl]
 catch {source $localize} msg err
 if {[dict get $err -code] != 0} {
     if {![string match "POSIX ENOENT *" [dict get $err -errorcode]]} {
