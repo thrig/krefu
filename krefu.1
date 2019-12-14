@@ -1,4 +1,4 @@
-.Dd December 13 2019
+.Dd December 14 2019
 .Dt KREFU 1
 .nh
 .Os
@@ -26,6 +26,18 @@
 .Nm
 .Cm train
 .Ar deck
+.Ek
+.Bk -words
+.Nm
+.Cm list
+.Ar deck
+.Ek
+.Bk -words
+.Nm
+.Cm delete
+.Ar deck
+.Ar cardid
+.Op Ar cardid Op ..
 .Ek
 .Sh DESCRIPTION
 .Nm
@@ -132,7 +144,22 @@ and
 tables.
 .Pp
 It is hoped that the schema will not change significantly from the
-present form.
+present form. An example manual edit of the database:
+.Pp
+.Dl $ Ic sqlite3 ~/share/krefu/krefu.db
+.Dl sqlite> Ic PRAGMA foreign_keys = ON;
+.Dl sqlite> Ic BEGIN TRANSACTION;
+.Dl sqlite> Ic SELECT cardid FROM cardinfo WHERE front LIKE '%queiro%';
+.Dl 223
+.Dl sqlite> Ic DELETE FROM cardinfo WHERE cardid=223;
+.Dl sqlite> Ic COMMIT;
+.Pp
+The above can also be done via 
+.Nm
+.Cm list
+and
+.Nm
+.Cm delete Ar cardid .
 .Ss Encoding
 .Nm
 uses the platform- and locale-dependent system encoding. Care must be
@@ -150,6 +177,11 @@ by default. Sqlite will need write access to this directory.
 .Cm init
 will not create this directory.
 .Sh FILES
+.Pa krefu.db
+under
+.Dv KREFU_DIR
+is the database file.
+.Pp
 .Pa krefu.tcl
 under
 .Dv KREFU_DIR
@@ -215,7 +247,8 @@ necessary to avoid simultaneous audio or such.
 .Dl \& \& \& Ic \&'audio:~/share/mlatu.mp3 image:~/share/mlatu.png\&'
 .Sh SEE ALSO
 .Xr encoding n ,
-.Xr file n
+.Xr file n ,
+.Xr sqlite3 1
 .Pp
 .Nm Anki
 .Nd what I used to use

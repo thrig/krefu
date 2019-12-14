@@ -45,7 +45,7 @@ my $back  = 'test' . $$;
 {
     $cmd->run(args => 'decks');
     $cmd->run(args => "add $deck 1 $front $back");
-    $cmd->run(args => 'decks', stdout => [$deck . ' 1']);
+    $cmd->run(args => 'decks', stdout => [ $deck . ' 1' ]);
 }
 
 {
@@ -63,9 +63,11 @@ my $back  = 'test' . $$;
     # one reason might be is the changes aren't sync'ing quick enough
     # (or at all) to the disk, maybe add sleep statements to better
     # ensure that?
-    $cmd->run(args => 'decks', stdout => [$deck . ' 1'])
+    $cmd->run(args => 'decks', stdout => [ $deck . ' 1' ])
       or BAIL_OUT("krefu.tcl still broken??");
 }
+
+$cmd->run(args => "list $deck", stdout => qr/^(?a)\d+ 1 /);
 
 # quit
 $cmd->run(
@@ -95,9 +97,12 @@ $cmd->run(
     stdout => qr/^/,
     stderr => qr/no cards remain/
 );
+$cmd->run(args => "list $deck", stdout => qr/^(?a)\d+ 0 /);
+$cmd->cmd->stdout =~ m/^(?a)(\d+)/;
+my $cardid = $1;
 
-# TODO modify krefu.tcl and change mediacmd to something that can be
-# tested. will also need a card with media set
+$cmd->run(args => "delete $deck $cardid");
+$cmd->run(args => "list $deck", stderr => qr/no cards/, status => 1);
 
 # custom media commands
 {
@@ -128,8 +133,11 @@ $cmd->run(
 }
 
 # invalid stuff
-$cmd->run(stderr => qr/Usage: /, status => 64);
-$cmd->run(args   => 'nodasmuci', stderr => qr/unknown/, status => 64);
+$cmd->run(stderr => qr/Usage: /,  status => 64);
+$cmd->run(args   => 'list',       stderr => qr/list/, status => 64);
+$cmd->run(args   => 'add foo 1',  stderr => qr/add deck/, status => 64);
+$cmd->run(args   => 'delete foo', stderr => qr/delete deck/, status => 64);
+$cmd->run(args   => 'nodasmuci',  stderr => qr/unknown/, status => 64);
 
 # or try to, anyways
 sub to_disk {
@@ -137,4 +145,4 @@ sub to_disk {
     eval { $_[0]->sync };
 }
 
-done_testing 53
+done_testing 74

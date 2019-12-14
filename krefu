@@ -67,6 +67,16 @@ proc create_reverse {} {
     }
 }
 
+proc delete_media {args} {
+    foreach media $args {
+        foreach spec [split $media \ ] {
+            if {[regexp {^([^:]+):(.+)} $spec -> type path]} {
+                file delete [file normalize $path]
+            }
+        }
+    }
+}
+
 proc handle_media {media} {
     global card mediacmd
     # NOTE this means that spaces in filenames are not permitted (the
@@ -140,8 +150,7 @@ proc known {isnew} {
     }
 }
 
-# krefu commands. more will doubtless need to be added (review inactive
-# cards, delete cards, probably also bulk import and export) though some
+# krefu commands. more will doubtless need to be added though some
 # things can also be done by poking around in the database directly
 proc main {} {
     global argv command db dbfile kdir
@@ -204,6 +213,45 @@ proc main {} {
                     WHERE deckid = $deck(deckid) AND mtime = 0
                 }]
                 puts "$deck(deck) $new"
+            }
+        }
+        list {
+            set dname [lindex $argv 1]
+            if {$dname eq ""} {
+                puts stderr "Usage: krefu list deck-name"
+                exit 64
+            }
+            sqlite3 db $dbfile -create 0 -nomutex 1
+            set ret 1
+            db eval {
+                SELECT DISTINCT cardid,active,front,back
+                FROM (cardinfo INNER JOIN carddecks USING (cardid)
+                INNER JOIN cards USING (cardid))
+                WHERE deckid IN (SELECT deckid FROM decks WHERE deck = $dname)
+            } card {
+                puts "$card(cardid) $card(active) {$card(front)} {$card(back)}"
+                set ret 0
+            }
+            if {$ret} {puts stderr "no cards for $dname"}
+            exit $ret
+        }
+        delete {
+            set dname [lindex $argv 1]
+            if {$dname eq "" || [llength $argv] < 3} {
+                puts stderr "Usage: krefu delete deck-name cardid \[cardid ..]"
+                exit 64
+            }
+            sqlite3 db $dbfile -create 0 -nomutex 1
+            db eval {PRAGMA foreign_keys = ON}
+            db transaction {
+                foreach cardid [lrange $argv 2 end] {
+                    db eval {
+                        SELECT fmedia,bmedia FROM cardinfo WHERE cardid=$cardid
+                    } media {
+                        delete_media $media(fmedia) $media(bmedia)
+                    }
+                    db eval {DELETE FROM cardinfo WHERE cardid=$cardid}
+                }
             }
         }
         init {
