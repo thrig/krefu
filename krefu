@@ -323,14 +323,14 @@ proc main {} {
 
 proc show_answer {text media} {
     if {[string length $media]} {handle_media $media}
-    if {[string length $text]} {puts "Answer: [bold $text]"}
-    puts "okay? \[[bold y/n]]"
+    if {[string length $text]} {puts [bold $text]}
+    puts -nonewline "okay? \[[bold y/n]] "
 }
 
 proc show_question {text media} {
     puts -nonewline \033\[1\;1H\033\[2J
     if {[string length $media]} {handle_media $media}
-    puts "Question: [bold $text]"
+    puts [bold $text]
 }
 
 # N is the number of cards but traincard gets an id,type,id,type,...
