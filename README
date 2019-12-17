@@ -1,7 +1,6 @@
 krefu - a small flashcard program
 
-krefu is written in TCL; installation on OpenBSD 6.6 might look
-something like
+build and installation on OpenBSD 6.6 might look something like
 
   doas pkg_add tcl-8.6.8p2 sqlite3-tcl-3.24.0
 
@@ -9,10 +8,15 @@ something like
   # for this)
   doas pkg_add feh sox
 
+  make krefu
   cp krefu /some/where/in/PATH
   cp krefu.1 /some/where/in/MANPATH/man1
   man krefu
 
+  mkdir -p ~/share/krefu
+  cp main.tcl ~/share/krefu
+  krefu init
+  ...
 
 the tests are written in Perl and require various Perl modules;
 
@@ -20,6 +24,7 @@ the tests are written in Perl and require various Perl modules;
   make test
 
 
-krefu should be portable to systems that have unix terminals, stty(1),
+krefu should be portable to systems that support unix terminals, curses,
 TCL, and the TCL sqlite3 library. however portability has not been
-tested beyond OpenBSD 6.6 and Mac OS X 10.11
+tested beyond OpenBSD 6.6 and Mac OS X 10.11. BSD make and some flavor
+of m4 may need to be found

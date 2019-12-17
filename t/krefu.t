@@ -2,6 +2,7 @@
 
 use 5.26.0;
 use warnings;
+use File::Copy qw(copy);
 use File::Path qw(make_path);
 use File::Spec::Functions qw(catfile);
 use File::Temp qw(tempdir);
@@ -17,6 +18,7 @@ ok $test_dir !~ m/\s/ or BAIL_OUT("whitespace found in test path '$test_dir'");
 make_path $test_dir;
 $ENV{KREFU_DIR} = $test_dir;
 
+copy("main.tcl", $test_dir) or BAIL_OUT("copy main.tcl $test_dir failed");
 my $dbfile = catfile($test_dir, 'krefu.db');
 
 # krefu.tcl overrides code in krefu
@@ -73,21 +75,21 @@ $cmd->run(args => "list $deck", stdout => qr/^(?a)\d+ 1 /);
 $cmd->run(
     args   => "train $deck",
     stdin  => 'Q',
-    stdout => qr/Question:.*$front/
+    stdout => qr/$front/
 );
 
 # show answer and then quit
 $cmd->run(
     args   => "train $deck",
     stdin  => ' Q',
-    stdout => qr/(?s)Question:.*$front.*Answer:.*$back/
+    stdout => qr/(?s)$front.*$back/
 );
 
 # ignore the card
 $cmd->run(
     args   => "train $deck",
     stdin  => 'I',
-    stdout => qr/Question:.*$front/,
+    stdout => qr/$front/,
     stderr => qr/no cards remain/
 );
 
@@ -120,7 +122,7 @@ $cmd->run(args => "list $deck", stderr => qr/no cards/, status => 1);
     $cmd->run(
         args   => "train media",
         stdin  => ' Q',
-        stdout => qr/(?s)Question:.*ftxt.*Answer:.*btxt/
+        stdout => qr/(?s)ftxt.*btxt/
     );
 
     # KLUGE media commands are run in the background so may take some

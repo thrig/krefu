@@ -1,43 +1,16 @@
-#!/usr/bin/env tclsh8.6
-#
-# krefu - a small flashcard program. krefu requires a terminal (that
-# supports various ANSI or XTerm control sequences) and stty(1)
+# krefu - a small flashcard program
 
 package require Tcl 8.6
 package require sqlite3 3.24.0
-# https://github.com/thrig/tcl-pledge (pledge, unveil calls)
-package require pledge
-
-pledge "cpath exec flock proc rpath stdio tty wpath unveil" NULL
 
 namespace path {::tcl::mathop ::tcl::mathfunc}
 
-set kdir [lindex [array get env KREFU_DIR] end]
-if {$kdir eq ""} {set kdir ~/share/krefu}
-set kdir [file normalize $kdir]
 set dbfile [file join $kdir krefu.db]
-
-# TWEAK need rx for $mediacmd exec (feh, play, or . for the unit tests),
-# and also the /dev permissions so exec can do things with /dev/null
-unveil /usr/local/bin rx
-unveil /bin rx
-unveil . rx
-unveil $kdir crwx
-unveil /dev crwx
-unveil
 
 # assumes `sox` and `feh` are installed (or point to something suitable)
 set mediacmd [dict create audio play image feh]
 
-# restore terminal state (necessary under the "train" command)
 proc bail_out {{status 0} {msg {}}} {
-    catch {
-        if {[dict exists [fconfigure stdin] -mode]} {
-            exec -ignorestderr -- stty -raw echo <@stdin
-        }
-    }
-    # disable alternate screen
-    puts -nonewline \033\[?1049l
     if {[string length $msg]} {puts stderr $msg}
     exit $status
 }
@@ -134,8 +107,10 @@ proc known {isnew} {
     set epoch [spaced_rep $card(score)]
     incr card(seen)
     # TWEAK do not show card too much to avoid fatigue
-    if {$card(seen) > 20} {set active 0}
+    #if {$card(seen) > 20} {set active 0}
     # leech? disable the card as not getting anywhere with it
+    # TODO will probably also need disable both of pairs, also need
+    # better log of things that have too many misses...
     if {$card(seen) > 10 && $card(score) < 1} {set active 0}
     db eval {
         UPDATE cards SET mtime = $epoch,
@@ -164,14 +139,8 @@ proc main {} {
                 exit 64
             }
             sqlite3 db $dbfile -create 0 -nomutex 1
-            catch {
-                if {[dict exists [fconfigure stdin] -mode]} {
-                    exec -ignorestderr -- stty raw -echo <@stdin
-                }
-            }
+            init_curses
             fconfigure stdout -buffering none
-            # setup alternate screen, cursor top left, clear screen
-            puts -nonewline \033\[?1049h\033\[1\;1H\033\[2J
             traindeck $dname
         }
         add {
@@ -323,8 +292,8 @@ proc main {} {
 
 proc show_answer {text media} {
     if {[string length $media]} {handle_media $media}
-    if {[string length $text]} {puts [bold $text]}
-    puts -nonewline "okay? \[[bold y/n]] "
+    if {[string length $text]} {puts -nonewline [bold $text]}
+    puts -nonewline { [y/n] }
 }
 
 proc show_question {text media} {
@@ -411,7 +380,7 @@ proc traindeck {dname} {
         set newlim [clamp [- $deck(new) $deck(ndone)] 0 $deck(new)]
         set revlim [clamp [- $deck(review) $deck(rdone)] 0 $deck(review)]
         if {$newlim == 0 && $revlim == 0} {
-            bail_out 0 "$dname: no cards to train!!"
+            bail_out 0 "\033\[1\;1H\033\[2J$dname: no cards to train!!"
         }
         set newcards [db eval {
             SELECT cardid,type FROM cards INNER JOIN carddecks USING (cardid)
@@ -427,7 +396,7 @@ proc traindeck {dname} {
         set newlim [/ [llength $newcards] 2]
         set revlim [/ [llength $revcards] 2]
         if {$newlim == 0 && $revlim == 0} {
-            bail_out 0 "$dname: no cards remain"
+            bail_out 0 "\033\[1\;1H\033\[2J$dname: no cards remain"
         }
         while {$newlim > 0 || $revlim > 0} {
             if {[rand_newreview $newlim $revlim]} {
