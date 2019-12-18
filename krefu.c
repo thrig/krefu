@@ -24,7 +24,10 @@ char *texpand(const char *s);
 
 int main(int argc, char *argv[])
 {
-    setlocale(LC_ALL, "");
+    /* advised for curses but then would require [system encoding utf-8]
+     * or whatever over on the TCL side of things, or to re-encoding
+     * using iso8859-1 ... */
+    //setlocale(LC_ALL, "");
 
     if ((Interp = Tcl_CreateInterp()) == NULL)
         errx(EX_OSERR, "Tcl_CreateInterp failed");
@@ -68,6 +71,7 @@ void cleanup(void)
 {
     noraw();
     echo();
+    curs_set(TRUE);
     endwin();
 }
 
@@ -76,6 +80,7 @@ static int init_curses(ClientData clientData, Tcl_Interp * interp, int objc,
 {
     initscr();
     atexit(cleanup);
+    curs_set(FALSE);
     raw();
     noecho();
     nonl();

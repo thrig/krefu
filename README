@@ -26,5 +26,4 @@ the tests are written in Perl and require various Perl modules;
 
 krefu should be portable to systems that support unix terminals, curses,
 TCL, and the TCL sqlite3 library. however portability has not been
-tested beyond OpenBSD 6.6 and Mac OS X 10.11. BSD make and some flavor
-of m4 may need to be found
+tested beyond OpenBSD 6.6 and Mac OS X 10.11

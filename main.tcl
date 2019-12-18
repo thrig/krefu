@@ -292,8 +292,8 @@ proc main {} {
 
 proc show_answer {text media} {
     if {[string length $media]} {handle_media $media}
-    if {[string length $text]} {puts -nonewline [bold $text]}
-    puts -nonewline { [y/n] }
+    if {[string length $text]} {puts -nonewline "[bold $text] "}
+    puts {[y/n]}
 }
 
 proc show_question {text media} {
