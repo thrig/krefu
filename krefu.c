@@ -24,15 +24,17 @@ char *texpand(const char *s);
 
 int main(int argc, char *argv[])
 {
-    /* advised for curses but then would require [system encoding utf-8]
-     * or whatever over on the TCL side of things, or to re-encoding
-     * using iso8859-1 ... */
-    //setlocale(LC_ALL, "");
+    /* advised for curses but then see Environment setup, below */
+    setlocale(LC_ALL, "");
 
     if ((Interp = Tcl_CreateInterp()) == NULL)
         errx(EX_OSERR, "Tcl_CreateInterp failed");
     if (Tcl_Init(Interp) == TCL_ERROR)
         errx(EX_OSERR, "Tcl_Init failed");
+
+    Tcl_DString enc;
+    Tcl_SetSystemEncoding(NULL, Tcl_GetEncodingNameFromEnvironment(&enc));
+    //Tcl_DStringFree(&enc);
 
     if (Tcl_CreateObjCommand
         (Interp, "init_curses", init_curses, (ClientData) NULL,
