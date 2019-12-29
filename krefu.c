@@ -16,34 +16,32 @@
 
 Tcl_Interp *Interp;
 
-static int init_curses(ClientData clientData, Tcl_Interp * interp, int objc,
-                       Tcl_Obj * CONST objv[]);
+static int init_curses(ClientData clientData, Tcl_Interp *interp, int objc,
+                       Tcl_Obj *CONST objv[]);
 /* some flavor of POSIX apparently has wordexp.h; that might be a better
  * option for OS that have that */
 char *texpand(const char *s);
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     /* advised for curses but then see Environment setup, below */
     setlocale(LC_ALL, "");
 
     if ((Interp = Tcl_CreateInterp()) == NULL)
         errx(EX_OSERR, "Tcl_CreateInterp failed");
-    if (Tcl_Init(Interp) == TCL_ERROR)
-        errx(EX_OSERR, "Tcl_Init failed");
+    if (Tcl_Init(Interp) == TCL_ERROR) errx(EX_OSERR, "Tcl_Init failed");
 
     Tcl_DString enc;
     Tcl_SetSystemEncoding(NULL, Tcl_GetEncodingNameFromEnvironment(&enc));
-    //Tcl_DStringFree(&enc);
+    // Tcl_DStringFree(&enc);
 
-    if (Tcl_CreateObjCommand
-        (Interp, "init_curses", init_curses, (ClientData) NULL,
-         (Tcl_CmdDeleteProc *) NULL) == NULL)
+    if (Tcl_CreateObjCommand(Interp, "init_curses", init_curses,
+                             (ClientData) NULL,
+                             (Tcl_CmdDeleteProc *) NULL) == NULL)
         errx(1, "Tcl_CreateObjCommand failed");
 
     char *args = Tcl_Merge(argc - 1, (const char *const *) argv + 1);
     Tcl_SetVar(Interp, "argv", args, TCL_GLOBAL_ONLY);
-    //Tcl_Free(args);
+    // Tcl_Free(args);
 
     char *kdir = texpand(getenv("KREFU_DIR"));
     Tcl_SetVar(Interp, "kdir", kdir, TCL_GLOBAL_ONLY);
@@ -55,7 +53,7 @@ int main(int argc, char *argv[])
     if ((ret = Tcl_EvalFile(Interp, main)) != TCL_OK) {
         if (ret == TCL_ERROR) {
             Tcl_Obj *options = Tcl_GetReturnOptions(Interp, ret);
-            Tcl_Obj *key = Tcl_NewStringObj("-errorinfo", -1);
+            Tcl_Obj *key     = Tcl_NewStringObj("-errorinfo", -1);
             Tcl_Obj *stacktrace;
             Tcl_IncrRefCount(key);
             Tcl_DictObjGet(NULL, options, key, &stacktrace);
@@ -65,21 +63,19 @@ int main(int argc, char *argv[])
         }
         errx(1, "%s failed: %s", main, Tcl_GetStringResult(Interp));
     }
-    //free(kdir);
+    // free(kdir);
     exit(EXIT_SUCCESS);
 }
 
-void cleanup(void)
-{
+void cleanup(void) {
     noraw();
     echo();
     curs_set(TRUE);
     endwin();
 }
 
-static int init_curses(ClientData clientData, Tcl_Interp * interp, int objc,
-                       Tcl_Obj * CONST objv[])
-{
+static int init_curses(ClientData clientData, Tcl_Interp *interp, int objc,
+                       Tcl_Obj *CONST objv[]) {
     initscr();
     atexit(cleanup);
     curs_set(FALSE);
@@ -91,8 +87,7 @@ static int init_curses(ClientData clientData, Tcl_Interp * interp, int objc,
     return TCL_OK;
 }
 
-char *texpand(const char *s)
-{
+char *texpand(const char *s) {
     if (s == NULL || s[0] == '\0') {
         return texpand("~/share/krefu");
     } else if (s[0] == '~') {
@@ -108,9 +103,8 @@ char *texpand(const char *s)
             asprintf(&out, "%s%s", home, &s[1]);
         } else {
             char *user = strdup(&s[1]);
-            char *end = strchr(user, '/');
-            if (end != NULL)
-                *end = '\0';
+            char *end  = strchr(user, '/');
+            if (end != NULL) *end = '\0';
             if ((p = getpwnam(user)) == NULL)
                 err(1, "cannot lookup user %s", user);
             free(user);
