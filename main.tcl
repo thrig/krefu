@@ -261,12 +261,18 @@ proc main {} {
                 db eval {
                     CREATE INDEX idx_cards_mtimeactive ON cards(mtime,active);
                 }
+                # TWEAK 'new' is how many new cards will be shown per
+                # nperiod (seconds), and 'review' how many already seen
+                # cards will be reviewed per rperiod. these may need to
+                # vary by deck or over time, or to suit your workflow (I
+                # add new Spanish cards in the evening, and lojban cards
+                # in the morning, for example)
                 db eval {
                     CREATE TABLE decks (
                       deckid INTEGER PRIMARY KEY NOT NULL,
                       deck TEXT UNIQUE NOT NULL,
                       new INTEGER NOT NULL DEFAULT 10,
-                      review INTEGER NOT NULL DEFAULT 40,
+                      review INTEGER NOT NULL DEFAULT 100,
                       ndone INTEGER NOT NULL DEFAULT 0,
                       nperiod INTEGER NOT NULL DEFAULT 50400,
                       ntime INTEGER NOT NULL DEFAULT 0,
