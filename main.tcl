@@ -10,6 +10,10 @@ set dbfile [file join $kdir krefu.db]
 # assumes `sox` and `feh` are installed (or point to something suitable)
 set mediacmd [dict create audio play image feh]
 
+# see also logic in spaced_rep
+set score_min 0
+set score_max 9
+
 proc bail_out {{status 0} {msg {}}} {
     if {[string length $msg]} {puts stderr $msg}
     exit $status
@@ -81,9 +85,9 @@ proc known {isnew} {
                 }
                 return
             }
-            y {incr card(score); break}
+            y {score_incr card(score);break}
             n {
-                incr card(score) -1
+                score_incr card(score) -1
                 # TWEAK if miss back/front perhaps show the usually
                 # easier front/back sooner to help out with the miss
                 # (this may end up annoying me if the same cardset is
@@ -93,7 +97,7 @@ proc known {isnew} {
                         SELECT score FROM cards
                         WHERE cardid = $card(cardid) AND type = 1
                     }]
-                    incr frontscore -1
+                    score_incr frontscore -1
                     db eval {
                         UPDATE cards SET score=$frontscore
                         WHERE cardid = $card(cardid) AND type = 1
@@ -110,14 +114,14 @@ proc known {isnew} {
     #if {$card(seen) > 20} {set active 0}
     # leech? disable the card as not getting anywhere with it
     # TODO will probably also need disable both of pairs, also need
-    # better log of things that have too many misses...
-    if {$card(seen) > 10 && $card(score) < 1} {set active 0}
+    # better log of things that have too many misses... hmm
+    #if {$card(seen) > 10 && $card(score) < 1} {set active 0}
     db eval {
         UPDATE cards SET mtime = $epoch,
           score = $card(score), seen = $card(seen), active = $active
         WHERE cardid = $card(cardid) AND type = $card(type)
     }
-    if {$isnew} {incr $deck(ndone)} else {incr $deck(rdone)}
+    if {$isnew} {incr deck(ndone)} else {incr deck(rdone)}
     db eval {
         UPDATE decks SET ntime = $deck(ntime), rtime = $deck(rtime),
           ndone = $deck(ndone), rdone = $deck(rdone)
@@ -130,7 +134,7 @@ proc known {isnew} {
 proc main {} {
     global argv command db dbfile kdir
     set command [lindex $argv 0]
-    if {$command eq ""} {puts stderr "Usage: krefu command"; exit 64}
+    if {$command eq ""} {puts stderr "Usage: krefu command";exit 64}
     switch $command {
         train {
             set dname [lindex $argv 1]
@@ -290,6 +294,12 @@ proc main {} {
     }
 }
 
+proc score_incr {var {n 1}} {
+    global score_min score_max
+    upvar 1 $var score
+    set score [clamp [+ $score $n] $score_min $score_max]
+}
+
 proc show_answer {text media} {
     if {[string length $media]} {handle_media $media}
     if {[string length $text]} {puts -nonewline "[bold $text] "}
@@ -313,7 +323,8 @@ proc rand_newreview {new review} {
 # TWEAK intervals based on "Pimsleur's graduated-interval recall" on the
 # Wikipedia "Spaced repetition" page (as of late November 2019)
 proc spaced_rep {score} {
-    switch [clamp $score 0 9] {
+    global score_min score_max
+    switch [clamp $score $score_min $score_max] {
         0 {set offset 5}
         1 {set offset 23}
         2 {set offset 113}
