@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use File::HomeDir ();
+use File::MimeInfo qw(mimetype);
+use File::Spec::Functions qw(rel2abs);
+
+die "Usage: add-card-jbo front back [fmedia] [bmedia]"
+  if @ARGV < 2 || @ARGV > 4;
+
+if (@ARGV > 2) {
+    my $home = File::HomeDir->my_home;
+    for my $media (@ARGV[ 2 .. $#ARGV ]) {
+        next unless defined $media and length $media;
+        my $type = (split '/', mimetype $media)[0];
+        die "unknown type '$type' for media file $media\n"
+          unless $type eq 'audio' or $type eq 'image';
+        my $path = rel2abs $media;
+        $path =~ s{^$home}{~};
+        $media = $type . ':' . $path;
+    }
+}
+
+exec qw(krefu add jbo 1), @ARGV
