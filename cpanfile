@@ -1,5 +1,7 @@
 requires 'App::Prove';
 requires 'File::Copy';
+requires 'File::HomeDir';
+requires 'File::MimeInfo';
 requires 'File::Path';
 requires 'File::Spec::Functions';
 requires 'File::Temp';
