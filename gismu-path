@@ -1,0 +1,2 @@
+#!/bin/sh
+exec echo "$HOME"/reference/lingua/lojban/sutysisku/sance/vreji/"$1".mp3

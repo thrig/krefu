@@ -1,0 +1,39 @@
+#!/usr/bin/env perl
+#
+# find gismu that lack individual cards for said
+
+use 5.28.0;
+use warnings;
+
+my $curly = qr{
+  (?<element> # $1
+   \{
+    (?<text>
+      (?: [^{}]++ | (?<element> (?1)))*
+    )
+   \})}x;
+
+my %gismu;
+my %potential;
+
+open my $fh, '-|', qw/krefu list jbo/
+  or die "could not exec krefu: $!\n";
+while (my $line = readline $fh) {
+    my $front = $+{text} if $line =~ m/$curly/;
+    # gismu-only cards
+    if ($front =~ m/^(\S{5})$/) {
+        if (++$gismu{$1} > 1) {
+            warn "multiple cards for $1\n";
+        }
+    } else {
+        # find potential gismu in existing phrases (loose match helps
+        # find typos such as {cukte} instead of {cukta})
+        while ($front =~ m/\b(\S{5})(?!\.)(?<!\.)\b/g) {
+            $potential{$1}++;
+        }
+    }
+}
+close $fh;
+
+delete @potential{keys %gismu};
+say for sort keys %potential;

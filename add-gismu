@@ -1,0 +1,2 @@
+#!/bin/sh
+exec add-card-jbo "$1" "$2" `gismu-path "$1"`
