@@ -82,8 +82,9 @@ static int init_curses(ClientData clientData, Tcl_Interp *interp, int objc,
     raw();
     noecho();
     nonl();
-    clearok(stdscr, TRUE);
-    refresh();
+    // otherwise window resizes interrupt TCL reads which would then
+    // instead need to be handled by probably getch(3)
+    signal(SIGWINCH, SIG_IGN);
     return TCL_OK;
 }
 
