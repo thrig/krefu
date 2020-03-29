@@ -336,10 +336,10 @@ proc spaced_rep {score} {
         2 {set offset 113}
         3 {set offset 601}
         4 {set offset 18013}
-        5 {set offset 86413}
-        6 {set offset 432001}
+        5 {set offset 82811}
+        6 {set offset 428411}
         7 {set offset 2159959}
-        8 {set offset 10368037}
+        8 {set offset 10299997}
         9 {set offset 63069991}
     }
     + [clock seconds] $offset
