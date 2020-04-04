@@ -28,7 +28,7 @@ while (my $line = readline $fh) {
     } else {
         # find potential gismu in existing phrases (loose match helps
         # find typos such as {cukte} instead of {cukta})
-        while ($front =~ m/\b(\S{5})(?!\.)(?<!\.)\b/g) {
+        while ($front =~ m/\b(\S{5})(?![.'])(?<![.'])\b/g) {
             $potential{$1}++;
         }
     }
