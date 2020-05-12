@@ -147,6 +147,21 @@ proc main {} {
             fconfigure stdout -buffering none
             traindeck $dname
         }
+        trainrand {
+            sqlite3 db $dbfile -create 0 -nomutex 1
+            set decks [db onecolumn {SELECT deck FROM decks}]
+            set len [llength $decks]
+            if {$len == 0} {
+                puts stderr "no decks to train on"
+                exit 1
+            }
+            set dname [lindex $decks [expr {int($len*rand())}]]
+            puts $dname
+            after 500
+            init_curses
+            fconfigure stdout -buffering none
+            traindeck $dname
+        }
         add {
             if {[llength $argv] < 4} {
                 puts stderr \
